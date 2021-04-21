@@ -13,7 +13,7 @@ HAND_STRENGHT = {
     'HIGH_CARD' : 2,
 }
 
-class Hand:
+class Combo:
 
     def __init__(self, hand):
         self.hand = hand
@@ -30,7 +30,9 @@ class Hand:
 
     def resolve(self):
         
-        detected = self.detectFourOfAKind()
+        detected = self.detectStraightFlush()
+        if not detected:
+            detected = self.detectFourOfAKind()
         if not detected:
             detected = self.detectFullHouse()
         if not detected:
@@ -44,9 +46,12 @@ class Hand:
         if not detected:
             detected = self.detectPair()
         if not detected:
-            detected = self.HighCard()
+            self.HighCard()
 
     def detectStraightFlush(self):
+
+        if len(self.hand) < 5:
+            return False
         
         suit, amount = self.suits.most_common(1)[0]
 
@@ -85,6 +90,9 @@ class Hand:
             
     def detectFlush(self):
 
+        if len(self.hand) < 5:
+            return False
+
         suit, amount = self.suits.most_common(1)[0]
 
         if amount < 5:
@@ -100,6 +108,9 @@ class Hand:
         return True
 
     def detectFullHouse(self):
+        
+        if len(self.hand) < 5:
+            return False
 
         triple, double = self.numbers.most_common(2)
         number_3, amount_3 = triple
@@ -110,16 +121,19 @@ class Hand:
         
         triple = max([num for num in self.numbers if self.numbers[num] >= 3])
         double = max([num for num in self.numbers if (self.numbers[num] >= 2 and num != triple)])
-        best_hand = [c for c in self.hand if c.number == triple][:3] + [c for c in hand if c.number == double][:2]
+        best_hand = [c for c in self.hand if c.number == triple][:3] + [c for c in self.hand if c.number == double][:2]
         
         self.best_hand = best_hand,
         self.kickers = [],
-        self.type = 'FULL_HOUSE',
+        self.type = 'FULL_HOUSE'
         self.criterion = triple * 100 + double 
 
         return True
 
     def detectTwoPair(self):
+
+        if len(self.hand) < 4:
+            return False
 
         pair_1, pair_2 = self.numbers.most_common(2)
         number_p1, amount_p1 = pair_1
@@ -143,13 +157,16 @@ class Hand:
 
     def detectFourOfAKind(self):
 
+        if len(self.hand) < 4:
+            return False
+
         number, amount = self.numbers.most_common(1)[0]
 
         if amount < 4:
             return False
 
         kickers = sorted([c for c in self.hand if c.number != number], reverse=True)[:1]
-        best_hand =  [c for c in hand if c.number == number] + kickers
+        best_hand =  [c for c in self.hand if c.number == number] + kickers
 
         self.best_hand = best_hand
         self.kickers = kickers
@@ -159,6 +176,9 @@ class Hand:
         return True
 
     def detectTreeOfAKind(self):
+
+        if len(self.hand) < 3:
+            return False
 
         number, amount = self.numbers.most_common(1)[0]
 
@@ -178,6 +198,9 @@ class Hand:
     
     def detectPair(self):
 
+        if len(self.hand) < 2:
+            return False
+
         number, amount = self.numbers.most_common(1)[0]
 
         if amount < 2:
@@ -194,6 +217,9 @@ class Hand:
         return True
 
     def detectStraight(self):
+
+        if len(self.hand) < 5:
+            return False
 
         ordered = sorted(self.hand, reverse=True)
         combo = 1
@@ -257,9 +283,13 @@ class Hand:
 
     def __eq__(self, other_hand):
         sameType = HAND_STRENGHT[self.type] == HAND_STRENGHT[other_hand.type]
+        if not sameType:
+            return False
         sameCriteria = self.criterion == other_hand.criterion
+        if not sameCriteria:
+            return False
         sameKickers = all([self.kickers[i] == other_hand.kickers[i] for i in range(len(self.kickers))])
-        return sameType and sameCriteria and sameKickers
+        return sameKickers
 
 
 if __name__ == '__main__':
@@ -270,15 +300,15 @@ if __name__ == '__main__':
     h1 = deck.draw(2)
     h2 = deck.draw(2)
 
-    h1 = [Card(4, 'C'), Card(7, 'S')]
-    h2 = [Card(7, 'H'), Card(12, 'C')]
-    table = [Card(10, 'C'), Card(5, 'H'), Card(7, 'C'), Card(14, 'S'), Card(11, 'S') ]    
+    h1 = [Card(5, 'H'), Card(8, 'H')]
+    h2 = [Card(7, 'S'), Card(12, 'S')]
+    table = [Card(6, 'H'), Card(7, 'H'), Card(4, 'H'), Card(5, 'S'), Card(12, 'S') ]    
     print('Player 1', h1)
     print('Player 2', h2)
     print('Table: ', table)
     
-    hand1 = Hand(table + h1)
-    hand2 = Hand(table + h2)
+    hand1 = Combo(table + h1)
+    hand2 = Combo(table + h2)
 
     print('Hand1', hand1)
     print('Hand2', hand2)

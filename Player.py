@@ -1,21 +1,44 @@
 import random
 import names
+from Deck import suit_to_repr
+from Combos import Combo
+from starting_hands import rank_hand
+from utils import print_debug
 
 class Player:
 
-    def __init__(self, stack):
+    def __init__(self, name = None):
         
-        self.id = names.get_first_name()
-        self.stack = stack
+        self.id = names.get_first_name() if name == None else name
+        self.stack = 0
         self.hand = []
+        self.table = []
+        self.combo = None
         self.folded = False
         self.has_played = False
         self.on_pot = 0
         self.on_table = 0
+        self.debug = False
+
+    def classify_hand(self):
+        c1, c2 = self.hand
+        if c1 < c2:
+            c2, c1 = self.hand
+
+        is_suited = c1.suit == c2.suit
+
+        return f"{c1.get_number()}{c2.get_number()}{'s' if is_suited else 'o'}"
     
+    def set_table(self, table):
+        self.table = table
+
     def set_cards(self, cards):
         self.hand = cards
 
+    def get_combo(self):
+        self.combo = Combo(self.hand + self.table)
+        return self.combo
+        
     def __repr__(self):
         return f"Player: {self.id}({self.stack}) -- Hand:{self.hand}"
 
@@ -23,6 +46,7 @@ class Player:
         self.has_played = False
         self.folded = self.stack <= 0
         self.hand = []
+        self.table = []
         self.on_pot = 0
         self.on_table = 0
     
@@ -36,10 +60,9 @@ class Player:
 
     def act(self, gameState):
 
-        print('')
-        print(f'Its {self.id} time to play.')
-        print(f'Hand = {self.hand} ,On Pot/T+Stack = {self.on_pot}/{self.stack + self.on_table} -> {int(100 * self.on_pot/(self.stack + self.on_pot))}%')
-        print(f"Table: {gameState['table']} -- Curr Bet: {self.on_table}/{gameState['curr_bet']} -- Pot: {gameState['pot']}")
+        print_debug(f'Its {self.id} time to play.', self.debug)
+        print_debug(f'Hand = {self.hand} ,On Pot/T+Stack = {self.on_pot}/{self.stack + self.on_table} -> {int(100 * self.on_pot/(self.stack + self.on_pot))}%', self.debug)
+        print_debug(f"Table: {gameState['table']} -- Curr Bet: {self.on_table}/{gameState['curr_bet']} -- Pot: {gameState['pot']}", self.debug)
 
         choice = ''
         possible_options = []
@@ -91,7 +114,82 @@ class RandomPlayer(Player):
         else:
             amount = 0
 
-        print(choice, amount)
+        print_debug(str(choice) + '\t' + str(amount), self.debug)
+        return {
+            'type'  : choice,
+            'amount' : amount
+        }
+
+class SoftRandomPlayer(Player):
+
+    def make_choice(self, gameState, possible_options):
+
+        my_hand = self.classify_hand()
+        percentile = rank_hand(my_hand)
+
+        if random.random() < percentile:
+            choice = 'BET' if 'BET' in possible_options else 'CALL'
+        else:
+            choice = 'FOLD' if 'FOLD' in possible_options else 'CHECK'
+
+        if choice == 'BET':
+            amount = random.randint(gameState['curr_bet'] + 1, self.stack + self.on_pot)
+        elif choice == 'CALL':
+            amount = gameState['curr_bet'] - self.on_table
+        else:
+            amount = 0
+
+        print_debug(str(choice) + '\t' + str(amount), self.debug)
+        return {
+            'type'  : choice,
+            'amount' : amount
+        }
+
+class TightPlayer(Player):
+
+    def make_choice(self, gameState, possible_options):
+
+        my_hand = self.classify_hand()
+        percentile = rank_hand(my_hand)
+
+        if percentile > 0.85: 
+            choice = 'BET' if 'BET' in possible_options else 'CALL'
+        else:
+            choice = 'FOLD' if 'FOLD' in possible_options else 'CHECK'
+
+        if choice == 'BET':
+            amount = random.randint(gameState['curr_bet'] + 1, self.stack + self.on_pot)
+        elif choice == 'CALL':
+            amount = gameState['curr_bet'] - self.on_table
+        else:
+            amount = 0
+
+        print_debug(str(choice) + '\t' + str(amount), self.debug)
+        return {
+            'type'  : choice,
+            'amount' : amount
+        }
+
+class AgressivePlayer(Player):
+
+    def make_choice(self, gameState, possible_options):
+
+        my_hand = self.classify_hand()
+        percentile = rank_hand(my_hand)
+
+        if percentile > 0.5: 
+            choice = 'BET' if 'BET' in possible_options else 'CALL'
+        else:
+            choice = 'FOLD' if 'FOLD' in possible_options else 'CHECK'
+
+        if choice == 'BET':
+            amount = random.randint(gameState['curr_bet'] + 1, self.stack + self.on_pot)
+        elif choice == 'CALL':
+            amount = gameState['curr_bet'] - self.on_table
+        else:
+            amount = 0
+
+        print_debug(str(choice) + '\t' + str(amount), self.debug)
         return {
             'type'  : choice,
             'amount' : amount

@@ -1,7 +1,7 @@
 from random import shuffle
 
 
-num_to_repr = { 14: 'A', 11: 'J', 12: 'Q', 13: 'K' }
+num_to_repr = { 14: 'A', 11: 'J', 12: 'Q', 13: 'K', 10 : 'T' }
 suit_to_repr = { 'S': '♠', 'H' : '♥', 'D' : '♦' , 'C' : '♣' }
 
 class Card:
@@ -14,9 +14,11 @@ class Card:
         # Suit = [H, D, C, S]
         self.suit = suit
 
+    def get_number(self):
+        return num_to_repr[self.number] if self.number in num_to_repr else self.number
 
     def __repr__(self):
-        num = num_to_repr[self.number] if self.number in num_to_repr else self.number
+        num = self.get_number()
         suit_repr = suit_to_repr[self.suit]
         return str(num) + suit_repr
 
