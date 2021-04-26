@@ -18,6 +18,7 @@ class Player:
         self.has_played = False
         self.on_pot = 0
         self.on_table = 0
+        self.is_agent = False
         self.debug = False
 
     def classify_hand(self):
